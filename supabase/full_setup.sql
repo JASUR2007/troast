@@ -432,6 +432,30 @@ BEGIN
         );
     END IF;
 
+    -- Привязка identities для работы сервиса авторизации Supabase (GoTrue)
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'auth' AND table_name = 'identities' AND column_name = 'provider_id'
+    ) THEN
+        EXECUTE $dyn$
+            INSERT INTO auth.identities (id, provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+            VALUES 
+                (gen_random_uuid()::text, $1::text, $1, json_build_object('sub', $1::text, 'email', 'manager@troast.ru')::jsonb, 'email', now(), now(), now()),
+                (gen_random_uuid()::text, $2::text, $2, json_build_object('sub', $2::text, 'email', 'alex@troast.ru')::jsonb, 'email', now(), now(), now()),
+                (gen_random_uuid()::text, $3::text, $3, json_build_object('sub', $3::text, 'email', 'dmitry@troast.ru')::jsonb, 'email', now(), now(), now())
+            ON CONFLICT DO NOTHING
+        $dyn$ USING v_manager_id, v_exec1_id, v_exec2_id;
+    ELSE
+        EXECUTE $dyn$
+            INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+            VALUES 
+                ($1::text, $1, json_build_object('sub', $1::text, 'email', 'manager@troast.ru')::jsonb, 'email', now(), now(), now()),
+                ($2::text, $2, json_build_object('sub', $2::text, 'email', 'alex@troast.ru')::jsonb, 'email', now(), now(), now()),
+                ($3::text, $3, json_build_object('sub', $3::text, 'email', 'dmitry@troast.ru')::jsonb, 'email', now(), now(), now())
+            ON CONFLICT DO NOTHING
+        $dyn$ USING v_manager_id, v_exec1_id, v_exec2_id;
+    END IF;
+
     INSERT INTO public.profiles (id, email, display_name, role)
     VALUES
         (v_manager_id, 'manager@troast.ru', 'Алексей Смирнов (Руководитель)', 'manager'),
