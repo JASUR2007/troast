@@ -22,19 +22,18 @@ BEGIN
         IF has_provider_id THEN
             EXECUTE format(
                 'INSERT INTO auth.identities (id, provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at) ' ||
-                'VALUES (gen_random_uuid()::text, %L, %L, %L::jsonb, ''email'', now(), now(), now()) ' ||
+                'VALUES (gen_random_uuid(), %L, %L::uuid, %L::jsonb, ''email'', now(), now(), now()) ' ||
                 'ON CONFLICT DO NOTHING',
                 r.id::text,
-                r.id,
+                r.id::text,
                 json_build_object('sub', r.id::text, 'email', r.email)::text
             );
         ELSE
             EXECUTE format(
                 'INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at) ' ||
-                'VALUES (%L, %L, %L::jsonb, ''email'', now(), now(), now()) ' ||
+                'VALUES (gen_random_uuid(), %L::uuid, %L::jsonb, ''email'', now(), now(), now()) ' ||
                 'ON CONFLICT DO NOTHING',
                 r.id::text,
-                r.id,
                 json_build_object('sub', r.id::text, 'email', r.email)::text
             );
         END IF;
