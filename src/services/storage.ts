@@ -1,7 +1,7 @@
 // src/services/storage.ts
-export const STORAGE_OBJECTS = 'troast_demo_objects_v1';
-export const STORAGE_TASKS = 'troast_demo_tasks_v1';
-export const STORAGE_HISTORY = 'troast_demo_history_v1';
+export const STORAGE_OBJECTS = 'troast_demo_objects_v2';
+export const STORAGE_TASKS = 'troast_demo_tasks_v2';
+export const STORAGE_HISTORY = 'troast_demo_history_v2';
 
 export function getStored<T>(key: string, fallback: T): T {
   try {

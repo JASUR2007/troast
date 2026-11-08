@@ -15,6 +15,7 @@ export const ObjectCard: React.FC<ObjectCardProps> = ({ obj, tasks, onClick }) =
   const reviewCount = objTasks.filter((t) => t.status === 'review').length;
   const reworkCount = objTasks.filter((t) => t.status === 'rework').length;
   const acceptedCount = objTasks.filter((t) => t.status === 'accepted').length;
+  const progressPercent = objTasks.length > 0 ? Math.round((acceptedCount / objTasks.length) * 100) : 0;
 
   return (
     <div
@@ -35,34 +36,30 @@ export const ObjectCard: React.FC<ObjectCardProps> = ({ obj, tasks, onClick }) =
           {obj.name}
         </h3>
 
-        <div className="flex items-center space-x-1.5 text-xs text-slate-500 mt-1.5 mb-4 line-clamp-1">
+        <div className="flex items-center space-x-1.5 text-xs text-slate-500 mt-1.5 mb-3 line-clamp-1">
           <MapPin className="w-3.5 h-3.5 shrink-0 text-slate-400" />
           <span>{obj.address}</span>
         </div>
+
+        {objTasks.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
+              <span>Готовность</span>
+              <span className="font-semibold text-slate-800">{progressPercent}%</span>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+              <div className="bg-emerald-500 h-1.5 rounded-full transition-all" style={{ width: `${progressPercent}%` }} />
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="pt-4 border-t border-slate-100">
+      <div className="pt-3 border-t border-slate-100">
         <div className="flex flex-wrap items-center gap-1.5 mb-3 text-[11px]">
-          {inProgressCount > 0 && (
-            <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-medium border border-blue-100">
-              {inProgressCount} в работе
-            </span>
-          )}
-          {reviewCount > 0 && (
-            <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 font-medium border border-amber-100">
-              {reviewCount} на проверке
-            </span>
-          )}
-          {reworkCount > 0 && (
-            <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 font-medium border border-rose-100">
-              {reworkCount} на доработке
-            </span>
-          )}
-          {acceptedCount > 0 && (
-            <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-medium border border-emerald-100">
-              {acceptedCount} принято
-            </span>
-          )}
+          {inProgressCount > 0 && <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-medium border border-blue-100">{inProgressCount} в работе</span>}
+          {reviewCount > 0 && <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 font-medium border border-amber-100">{reviewCount} на проверке</span>}
+          {reworkCount > 0 && <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 font-medium border border-rose-100">{reworkCount} на доработке</span>}
+          {acceptedCount > 0 && <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-medium border border-emerald-100">{acceptedCount} принято</span>}
           {objTasks.length === 0 && <span className="text-slate-400 italic">Нет назначенных задач</span>}
         </div>
 

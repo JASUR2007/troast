@@ -339,20 +339,20 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 DO $$
 DECLARE
-    v_manager_id UUID := '11111111-1111-1111-1111-111111111111';
-    v_exec1_id   UUID := '22222222-2222-2222-2222-222222222222';
-    v_exec2_id   UUID := '33333333-3333-3333-3333-333333333333';
+    v_manager_id UUID := 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
+    v_exec1_id   UUID := '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+    v_exec2_id   UUID := '6ba7b811-9dad-11d1-80b4-00c04fd430c8';
     
-    v_obj1_id    UUID := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
-    v_obj2_id    UUID := 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
-    v_obj3_id    UUID := 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+    v_obj1_id    UUID := '3fa85f64-5717-4562-b3fc-2c963f66afa6';
+    v_obj2_id    UUID := '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+    v_obj3_id    UUID := '8d2f5a34-2e11-4b6c-9c71-3f4a8b9c0d12';
 
-    v_task1_id   UUID := '10000000-0000-0000-0000-000000000001';
-    v_task2_id   UUID := '10000000-0000-0000-0000-000000000002';
-    v_task3_id   UUID := '10000000-0000-0000-0000-000000000003';
-    v_task4_id   UUID := '10000000-0000-0000-0000-000000000004';
-    v_task5_id   UUID := '10000000-0000-0000-0000-000000000005';
-    v_task6_id   UUID := '10000000-0000-0000-0000-000000000006';
+    v_task1_id   UUID := 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c81';
+    v_task2_id   UUID := 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c82';
+    v_task3_id   UUID := 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c83';
+    v_task4_id   UUID := 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c84';
+    v_task5_id   UUID := 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c85';
+    v_task6_id   UUID := 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c86';
     
     v_password_hash TEXT;
 BEGIN

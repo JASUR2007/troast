@@ -5,8 +5,8 @@ export const INITIAL_HISTORY: TaskHistoryItem[] = [
   // Task 1
   {
     id: 'h-1001',
-    task_id: '10000000-0000-0000-0000-000000000001',
-    actor_id: '11111111-1111-1111-1111-111111111111',
+    task_id: 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c81',
+    actor_id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     from_status: null,
     to_status: 'new',
     comment: 'Задача создана',
@@ -15,8 +15,8 @@ export const INITIAL_HISTORY: TaskHistoryItem[] = [
   // Task 2
   {
     id: 'h-2001',
-    task_id: '10000000-0000-0000-0000-000000000002',
-    actor_id: '11111111-1111-1111-1111-111111111111',
+    task_id: 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c82',
+    actor_id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     from_status: null,
     to_status: 'new',
     comment: 'Задача создана',
@@ -24,8 +24,8 @@ export const INITIAL_HISTORY: TaskHistoryItem[] = [
   },
   {
     id: 'h-2002',
-    task_id: '10000000-0000-0000-0000-000000000002',
-    actor_id: '22222222-2222-2222-2222-222222222222',
+    task_id: 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c82',
+    actor_id: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
     from_status: 'new',
     to_status: 'in_progress',
     comment: 'Приступил к сборке щита',
@@ -34,8 +34,8 @@ export const INITIAL_HISTORY: TaskHistoryItem[] = [
   // Task 3
   {
     id: 'h-3001',
-    task_id: '10000000-0000-0000-0000-000000000003',
-    actor_id: '11111111-1111-1111-1111-111111111111',
+    task_id: 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c83',
+    actor_id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     from_status: null,
     to_status: 'new',
     comment: 'Задача создана',
@@ -43,8 +43,8 @@ export const INITIAL_HISTORY: TaskHistoryItem[] = [
   },
   {
     id: 'h-3002',
-    task_id: '10000000-0000-0000-0000-000000000003',
-    actor_id: '22222222-2222-2222-2222-222222222222',
+    task_id: 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c83',
+    actor_id: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
     from_status: 'new',
     to_status: 'in_progress',
     comment: 'Начал монтаж и проверку шлейфов',
@@ -52,8 +52,8 @@ export const INITIAL_HISTORY: TaskHistoryItem[] = [
   },
   {
     id: 'h-3003',
-    task_id: '10000000-0000-0000-0000-000000000003',
-    actor_id: '22222222-2222-2222-2222-222222222222',
+    task_id: 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c83',
+    actor_id: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
     from_status: 'in_progress',
     to_status: 'review',
     comment: 'Все датчики протестированы, акты подписаны со стороны бригады',
@@ -62,8 +62,8 @@ export const INITIAL_HISTORY: TaskHistoryItem[] = [
   // Task 4
   {
     id: 'h-4001',
-    task_id: '10000000-0000-0000-0000-000000000004',
-    actor_id: '11111111-1111-1111-1111-111111111111',
+    task_id: 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c84',
+    actor_id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     from_status: null,
     to_status: 'new',
     comment: 'Задача создана',
@@ -71,8 +71,8 @@ export const INITIAL_HISTORY: TaskHistoryItem[] = [
   },
   {
     id: 'h-4002',
-    task_id: '10000000-0000-0000-0000-000000000004',
-    actor_id: '33333333-3333-3333-3333-333333333333',
+    task_id: 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c84',
+    actor_id: '6ba7b811-9dad-11d1-80b4-00c04fd430c8',
     from_status: 'new',
     to_status: 'in_progress',
     comment: 'Бригада вышла на монтаж утеплителя',
@@ -80,8 +80,8 @@ export const INITIAL_HISTORY: TaskHistoryItem[] = [
   },
   {
     id: 'h-4003',
-    task_id: '10000000-0000-0000-0000-000000000004',
-    actor_id: '33333333-3333-3333-3333-333333333333',
+    task_id: 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c84',
+    actor_id: '6ba7b811-9dad-11d1-80b4-00c04fd430c8',
     from_status: 'in_progress',
     to_status: 'review',
     comment: 'Фасад утеплен, готов к сдаче',
@@ -89,8 +89,8 @@ export const INITIAL_HISTORY: TaskHistoryItem[] = [
   },
   {
     id: 'h-4004',
-    task_id: '10000000-0000-0000-0000-000000000004',
-    actor_id: '11111111-1111-1111-1111-111111111111',
+    task_id: 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c84',
+    actor_id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     from_status: 'review',
     to_status: 'rework',
     comment: 'Обнаружены зазоры между плитами по оси 3-5, исправить гидроизоляцию мембраны',
@@ -99,8 +99,8 @@ export const INITIAL_HISTORY: TaskHistoryItem[] = [
   // Task 5
   {
     id: 'h-5001',
-    task_id: '10000000-0000-0000-0000-000000000005',
-    actor_id: '11111111-1111-1111-1111-111111111111',
+    task_id: 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c85',
+    actor_id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     from_status: null,
     to_status: 'new',
     comment: 'Задача создана',
@@ -108,8 +108,8 @@ export const INITIAL_HISTORY: TaskHistoryItem[] = [
   },
   {
     id: 'h-5002',
-    task_id: '10000000-0000-0000-0000-000000000005',
-    actor_id: '33333333-3333-3333-3333-333333333333',
+    task_id: 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c85',
+    actor_id: '6ba7b811-9dad-11d1-80b4-00c04fd430c8',
     from_status: 'new',
     to_status: 'in_progress',
     comment: 'Завезли раствор и технику',
@@ -117,8 +117,8 @@ export const INITIAL_HISTORY: TaskHistoryItem[] = [
   },
   {
     id: 'h-5003',
-    task_id: '10000000-0000-0000-0000-000000000005',
-    actor_id: '33333333-3333-3333-3333-333333333333',
+    task_id: 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c85',
+    actor_id: '6ba7b811-9dad-11d1-80b4-00c04fd430c8',
     from_status: 'in_progress',
     to_status: 'review',
     comment: 'Стяжка высохла, перепады проверены уровнем — в норме',
@@ -126,8 +126,8 @@ export const INITIAL_HISTORY: TaskHistoryItem[] = [
   },
   {
     id: 'h-5004',
-    task_id: '10000000-0000-0000-0000-000000000005',
-    actor_id: '11111111-1111-1111-1111-111111111111',
+    task_id: 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c85',
+    actor_id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     from_status: 'review',
     to_status: 'accepted',
     comment: 'Принято без замечаний, геометрия и прочность соответствуют СП',
@@ -136,8 +136,8 @@ export const INITIAL_HISTORY: TaskHistoryItem[] = [
   // Task 6
   {
     id: 'h-6001',
-    task_id: '10000000-0000-0000-0000-000000000006',
-    actor_id: '11111111-1111-1111-1111-111111111111',
+    task_id: 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c86',
+    actor_id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     from_status: null,
     to_status: 'new',
     comment: 'Задача создана',

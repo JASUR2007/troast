@@ -8,13 +8,12 @@ import { TaskCard } from '../components/Tasks/TaskCard';
 import { TaskStatusFilters } from '../components/Tasks/TaskStatusFilters';
 import { TaskDetailModal } from '../components/TaskDetailModal';
 import { CreateTaskModal } from '../components/CreateTaskModal';
-import { Building2, MapPin, Plus, ArrowLeft, Search, CheckSquare, AlertCircle } from 'lucide-react';
+import { Building2, MapPin, Plus, ArrowLeft, Search, CheckSquare, AlertCircle, Share2, Check } from 'lucide-react';
 
 export const ObjectDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentUser, profiles } = useAuth();
-
   const [currentObject, setCurrentObject] = useState<BuildingObject | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [allObjects, setAllObjects] = useState<BuildingObject[]>([]);
@@ -23,18 +22,18 @@ export const ObjectDetailPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const loadData = async () => {
     if (!currentUser || !id) return;
     try {
       setIsLoading(true);
-      const [userObjects, objectTasks] = await Promise.all([
-        api.getObjects(currentUser),
-        api.getTasks(currentUser, id),
-      ]);
+      const [userObjects, objectTasks] = await Promise.all([api.getObjects(currentUser), api.getTasks(currentUser, id)]);
       setAllObjects(userObjects);
-      setCurrentObject(userObjects.find((o) => o.id === id) || null);
+      const found = userObjects.find((o) => o.id === id) || null;
+      setCurrentObject(found);
       setTasks(objectTasks);
+      if (found) document.title = `${found.name} — Troast CRM`;
     } finally {
       setIsLoading(false);
     }
@@ -43,20 +42,32 @@ export const ObjectDetailPage: React.FC = () => {
   useEffect(() => { loadData(); }, [id, currentUser]);
 
   const isManager = currentUser?.role === 'manager';
+  const acceptedCount = tasks.filter((t) => t.status === 'accepted').length;
+  const progressPercent = tasks.length > 0 ? Math.round((acceptedCount / tasks.length) * 100) : 0;
 
   const filteredTasks = tasks.filter((t) => {
     const q = search.toLowerCase();
-    const matchesSearch = t.title.toLowerCase().includes(q) || t.description.toLowerCase().includes(q) || (t.assignee?.display_name || '').toLowerCase().includes(q);
-    return matchesSearch && (statusFilter === 'all' || t.status === statusFilter);
+    const match = t.title.toLowerCase().includes(q) || t.description.toLowerCase().includes(q) || (t.assignee?.display_name || '').toLowerCase().includes(q);
+    return match && (statusFilter === 'all' || t.status === statusFilter);
   });
+
+  const handleCopyLink = () => {
+    navigator.clipboard?.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <Link to="/objects" className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors">
+      <div className="mb-6 flex items-center justify-between">
+        <Link to="/objects" className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition">
           <ArrowLeft className="w-4 h-4" />
-          <span>Назад к списку объектов</span>
+          <span>Объекты / {currentObject?.name || 'Карточка'}</span>
         </Link>
+        <button onClick={handleCopyLink} className="inline-flex items-center space-x-1 text-xs text-slate-500 hover:text-slate-800 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+          {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5" />}
+          <span>{copied ? 'Скопировано!' : 'Поделиться'}</span>
+        </button>
       </div>
 
       {isLoading ? (
@@ -66,52 +77,47 @@ export const ObjectDetailPage: React.FC = () => {
           <AlertCircle className="w-12 h-12 text-rose-500 mx-auto mb-3" />
           <h2 className="text-lg font-bold text-slate-900">Объект не найден или доступ ограничен</h2>
           <p className="text-xs text-slate-500 mt-1">Исполнитель видит только объекты с назначенными ему задачами (RLS).</p>
-          <button onClick={() => navigate('/objects')} className="mt-4 px-4 py-2 bg-sky-600 text-white text-xs font-semibold rounded-lg hover:bg-sky-700 transition">
-            Вернуться ко всем объектам
-          </button>
+          <button onClick={() => navigate('/objects')} className="mt-4 px-4 py-2 bg-sky-600 text-white text-xs font-semibold rounded-lg">Вернуться</button>
         </div>
       ) : (
         <>
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 mb-8 shadow-xs sm:flex sm:items-start sm:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600"><Building2 className="w-7 h-7" /></div>
-              <div>
-                <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{currentObject.name}</h1>
-                <div className="flex items-center space-x-1 text-xs text-slate-500 mt-0.5">
-                  <MapPin className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-                  <span>{currentObject.address}</span>
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 mb-8 shadow-xs">
+            <div className="sm:flex sm:items-start sm:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600"><Building2 className="w-7 h-7" /></div>
+                <div>
+                  <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{currentObject.name}</h1>
+                  <div className="flex items-center space-x-1 text-xs text-slate-500 mt-0.5">
+                    <MapPin className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                    <span>{currentObject.address}</span>
+                  </div>
                 </div>
               </div>
+              {isManager && (
+                <button onClick={() => setIsCreateTaskOpen(true)} className="mt-4 sm:mt-0 inline-flex items-center space-x-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg shadow-sm">
+                  <Plus className="w-4 h-4" />
+                  <span>Поставить задачу</span>
+                </button>
+              )}
             </div>
-
-            {isManager && (
-              <button
-                onClick={() => setIsCreateTaskOpen(true)}
-                className="mt-4 sm:mt-0 inline-flex items-center space-x-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg shadow-sm transition"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Поставить задачу</span>
-              </button>
-            )}
+            <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+              <span>Готовность объекта: <strong className="text-slate-900">{progressPercent}%</strong> ({acceptedCount} из {tasks.length} принято)</span>
+              <div className="w-32 sm:w-48 bg-slate-100 rounded-full h-2 overflow-hidden">
+                <div className="bg-emerald-500 h-2 rounded-full transition-all" style={{ width: `${progressPercent}%` }} />
+              </div>
+            </div>
           </div>
 
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <CheckSquare className="w-5 h-5 text-sky-600" />
-                <span>Задачи ({filteredTasks.length})</span>
+                <span>Задачи объекта ({filteredTasks.length})</span>
               </h2>
-
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <div className="relative">
                   <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Поиск по задачам..."
-                    className="pl-8 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600 transition w-full sm:w-48"
-                  />
+                  <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Поиск по задачам..." className="pl-8 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg w-full sm:w-48" />
                 </div>
                 <TaskStatusFilters currentStatus={statusFilter} onChange={setStatusFilter} />
               </div>
@@ -130,20 +136,7 @@ export const ObjectDetailPage: React.FC = () => {
             )}
           </div>
 
-          <CreateTaskModal
-            isOpen={isCreateTaskOpen}
-            onClose={() => setIsCreateTaskOpen(false)}
-            onSubmit={async (data) => {
-              if (currentUser) {
-                await api.createTask(currentUser, data);
-                await loadData();
-              }
-            }}
-            objects={allObjects}
-            profiles={profiles}
-            defaultObjectId={currentObject.id}
-          />
-
+          <CreateTaskModal isOpen={isCreateTaskOpen} onClose={() => setIsCreateTaskOpen(false)} onSubmit={async (data) => { if (currentUser) { await api.createTask(currentUser, data); await loadData(); } }} objects={allObjects} profiles={profiles} defaultObjectId={currentObject.id} />
           <TaskDetailModal taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} onTaskUpdated={loadData} />
         </>
       )}

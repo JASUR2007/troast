@@ -47,7 +47,12 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
             <div className="space-y-1 pr-4">
               <div className="flex items-center gap-2">
                 {task && <StatusBadge status={task.status} />}
-                <span className="text-xs text-slate-400 font-mono">{task ? `#${task.id.slice(0, 8)}` : ''}</span>
+                <span className="text-xs font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-100">
+                  {task ? `№ ${task.code || task.id.slice(0, 6)}` : ''}
+                </span>
+                <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
+                  {task ? `UUID: ${task.id.slice(0, 8)}...` : ''}
+                </span>
               </div>
               <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug">
                 {isLoading ? 'Загрузка...' : task?.title}

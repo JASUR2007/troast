@@ -19,6 +19,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick, showObject = 
       <div className="space-y-2 flex-1 pr-4">
         <div className="flex items-center gap-2.5 flex-wrap">
           <StatusBadge status={task.status} />
+          <span className="text-xs font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded border border-sky-100">
+            № {task.code || task.id.slice(0, 6)}
+          </span>
           <h3 className="text-base font-bold text-slate-900 hover:text-sky-600 transition-colors">
             {task.title}
           </h3>

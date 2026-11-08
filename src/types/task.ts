@@ -6,6 +6,7 @@ export type TaskStatus = 'new' | 'in_progress' | 'review' | 'accepted' | 'rework
 
 export interface Task {
   id: string;
+  code?: string;
   title: string;
   description: string;
   object_id: string;
