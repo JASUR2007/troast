@@ -12,6 +12,7 @@ interface AuthContextType {
   signIn: (email: string, password?: string) => Promise<void>;
   signOut: () => Promise<void>;
   switchQuickUser: (email: string) => Promise<void>;
+  enterDemoMode: () => void;
   profiles: Profile[];
 }
 
@@ -28,8 +29,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     async function initAuth() {
       try {
         setIsLoading(true);
+        const forceDemo = localStorage.getItem('troast_force_demo') === 'true';
 
-        if (isSupabaseConfigured && supabase) {
+        if (isSupabaseConfigured && supabase && !forceDemo) {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user) {
             const profile = await api.getProfileById(session.user.id);
@@ -108,6 +110,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await signIn(email, 'TestPass123!');
   };
 
+  const enterDemoMode = () => {
+    localStorage.setItem('troast_force_demo', 'true');
+    setCurrentUser(INITIAL_PROFILES[0]);
+    setProfiles(INITIAL_PROFILES);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -117,6 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signIn,
         signOut,
         switchQuickUser,
+        enterDemoMode,
         profiles,
       }}
     >

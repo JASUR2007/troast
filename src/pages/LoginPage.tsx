@@ -3,16 +3,20 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { QuickLoginButtons } from './LoginPage/QuickLoginButtons';
 import { LoginForm } from './LoginPage/LoginForm';
-import { HardHat } from 'lucide-react';
+import { HardHat, AlertCircle } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { signIn, switchQuickUser } = useAuth();
+  const { signIn, switchQuickUser, isSupabaseConnected, enterDemoMode } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleQuickLogin = async (email: string) => {
     setIsLoading(true);
+    setErrorMsg('');
     try {
       await switchQuickUser(email);
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Ошибка входа в Supabase');
     } finally {
       setIsLoading(false);
     }
@@ -20,8 +24,11 @@ export const LoginPage: React.FC = () => {
 
   const handleManualLogin = async (email: string, pass: string) => {
     setIsLoading(true);
+    setErrorMsg('');
     try {
       await signIn(email, pass);
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Неверный email или пароль');
     } finally {
       setIsLoading(false);
     }
@@ -39,6 +46,27 @@ export const LoginPage: React.FC = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
         <div className="bg-white py-8 px-6 sm:px-10 rounded-2xl shadow-2xl border border-slate-100">
+          {errorMsg && (
+            <div className="mb-5 p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs space-y-1.5">
+              <div className="flex items-center gap-2 font-bold text-rose-900">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+              {isSupabaseConnected && (
+                <div className="text-[11px] text-slate-600 pl-6 space-y-1">
+                  <p>Если в Supabase ещё не выполнены миграции из <code>supabase/full_setup.sql</code>:</p>
+                  <button
+                    type="button"
+                    onClick={enterDemoMode}
+                    className="font-bold text-sky-700 hover:text-sky-900 underline block"
+                  >
+                    → Войти в автономном Демо-режиме (без ожидания БД)
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <QuickLoginButtons onQuickLogin={handleQuickLogin} isLoading={isLoading} />
 
           <div className="relative my-6">
