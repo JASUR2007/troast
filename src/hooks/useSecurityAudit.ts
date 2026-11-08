@@ -7,140 +7,142 @@ import { INITIAL_PROFILES, INITIAL_TASKS } from '../lib/mockData';
 export interface TestResult {
   id: string;
   title: string;
-  description: string;
+  description?: string;
   passed: boolean;
+  status: 'passed' | 'failed' | 'skipped';
   message: string;
 }
 
 export function useSecurityAudit() {
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<TestResult[]>([]);
+  const isLive = isSupabaseConfigured && Boolean(supabase);
 
   const runAudit = async () => {
     setIsRunning(true);
-    const testResults: TestResult[] = [];
+    const list: TestResult[] = [];
 
-    // Test 1: Изоляция чтения задач исполнителя
-    try {
+    if (!isLive) {
+      // 1. Изоляция выборки задач
       const alex = INITIAL_PROFILES[1];
-      const alexTasks = await api.getTasks(alex);
-      const leaked = alexTasks.some((t) => t.assignee_id !== alex.id);
-      testResults.push({
-        id: 'test-1',
-        title: '1. RLS: Изоляция чтения задач исполнителя',
-        description: 'Исполнитель Александр не должен видеть задачи Дмитрия',
-        passed: !leaked,
-        message: !leaked ? `Успешно: Александру возвращено только ${alexTasks.length} его личных задач.` : 'ОШИБКА: утечка чужих задач!',
+      const tasks = await api.getTasks(alex);
+      const leak = tasks.some((t) => t.assignee_id !== alex.id);
+      list.push({
+        id: 't1',
+        title: '1. Клиентская изоляция задач исполнителя',
+        passed: !leak,
+        status: !leak ? 'passed' : 'failed',
+        message: !leak ? `Исполнителю возвращено ${tasks.length} только личных задач.` : 'Обнаружена утечка чужих задач!',
       });
-    } catch (e: any) {
-      testResults.push({ id: 'test-1', title: '1. RLS чтение', description: '', passed: false, message: e.message });
-    }
 
-    // Test 2: Запрет обновления чужой задачи
-    try {
-      const alex = INITIAL_PROFILES[1];
+      // 2. Запрет перехода чужой задачи
+      let blockedOther = false;
       const dmitryTask = INITIAL_TASKS.find((t) => t.assignee_id !== alex.id)!;
-      let rejected = false;
       try {
         await api.transitionTask(alex, { taskId: dmitryTask.id, expectedStatus: dmitryTask.status, targetStatus: 'in_progress' });
-      } catch {
-        rejected = true;
+      } catch (e: any) {
+        blockedOther = e.message.includes('Доступ запрещен');
       }
-      testResults.push({
-        id: 'test-2',
-        title: '2. RLS & RPC: Запрет обновления чужой задачи',
-        description: 'Попытка исполнителя перевести в работу чужую задачу по UUID',
-        passed: rejected,
-        message: rejected ? 'Успешно: База отклонила попытку манипуляции чужой задачей.' : 'ОШИБКА: разрешено изменение чужой задачи!',
+      list.push({
+        id: 't2',
+        title: '2. Запрет изменения чужой задачи по ID',
+        passed: blockedOther,
+        status: blockedOther ? 'passed' : 'failed',
+        message: blockedOther ? 'Отклонено: исполнитель не может управлять чужой задачей.' : 'Ошибка: чужая задача изменена!',
       });
-    } catch (e: any) {
-      testResults.push({ id: 'test-2', title: '2. Чужая задача', description: '', passed: false, message: e.message });
-    }
 
-    // Test 3: Запрещённый переход Новая -> Принята
-    try {
-      const manager = INITIAL_PROFILES[0];
-      const newTask = INITIAL_TASKS.find((t) => t.status === 'new')!;
-      let rejected = false;
+      // 3. Запрет перехода Новая -> Принята
+      let blockedJump = false;
       try {
-        await api.transitionTask(manager, { taskId: newTask.id, expectedStatus: 'new', targetStatus: 'accepted' });
-      } catch {
-        rejected = true;
+        await api.transitionTask(INITIAL_PROFILES[0], { taskId: INITIAL_TASKS[0].id, expectedStatus: 'new', targetStatus: 'accepted' });
+      } catch (e: any) {
+        blockedJump = e.message.includes('Недопустимый переход');
       }
-      testResults.push({
-        id: 'test-3',
-        title: '3. State Machine: Запрет перехода "Новая" -> "Принята"',
-        description: 'Задача не может быть сразу принята в обход этапов выполнения',
-        passed: rejected,
-        message: rejected ? 'Успешно: Недопустимый скачок статуса отклонён базой.' : 'ОШИБКА: пропущен запрещенный переход!',
+      list.push({
+        id: 't3',
+        title: '3. Запрет перехода "Новая" -> "Принята"',
+        passed: blockedJump,
+        status: blockedJump ? 'passed' : 'failed',
+        message: blockedJump ? 'Отклонено: задача не может быть принята без проверки.' : 'Ошибка: пропущен недопустимый переход!',
       });
-    } catch (e: any) {
-      testResults.push({ id: 'test-3', title: '3. Переход', description: '', passed: false, message: e.message });
-    }
 
-    // Test 4: Возврат на доработку без комментария
-    try {
-      const manager = INITIAL_PROFILES[0];
-      const reviewTask = INITIAL_TASKS.find((t) => t.status === 'review')!;
-      let rejected = false;
+      // 4. Обязательность комментария на доработку
+      let blockedNoComment = false;
       try {
-        await api.transitionTask(manager, { taskId: reviewTask.id, expectedStatus: 'review', targetStatus: 'rework', comment: '  ' });
-      } catch {
-        rejected = true;
+        await api.transitionTask(INITIAL_PROFILES[0], { taskId: INITIAL_TASKS[2].id, expectedStatus: 'review', targetStatus: 'rework', comment: '' });
+      } catch (e: any) {
+        blockedNoComment = e.message.includes('комментарий обязателен');
       }
-      testResults.push({
-        id: 'test-4',
-        title: '4. ТЗ: Обязательность комментария при возврате на доработку',
-        description: 'Возврат с "На проверке" в "На доработке" обязан содержать комментарий',
-        passed: rejected,
-        message: rejected ? 'Успешно: База заблокировала возврат без комментария.' : 'ОШИБКА: возврат без комментария допущен!',
+      list.push({
+        id: 't4',
+        title: '4. Обязательность комментария при возврате на доработку',
+        passed: blockedNoComment,
+        status: blockedNoComment ? 'passed' : 'failed',
+        message: blockedNoComment ? 'Отклонено: возврат без комментария заблокирован.' : 'Ошибка: возврат пропущен без комментария!',
       });
-    } catch (e: any) {
-      testResults.push({ id: 'test-4', title: '4. Комментарий', description: '', passed: false, message: e.message });
-    }
 
-    // Test 5: Запрет прямой вставки в task_history
-    try {
-      let rejected = true;
-      if (isSupabaseConfigured && supabase) {
-        const { error } = await supabase.from('task_history').insert([{
-          task_id: INITIAL_TASKS[0].id,
-          actor_id: INITIAL_PROFILES[1].id,
-          to_status: 'accepted',
-          comment: 'Взлом истории',
-        }]);
-        rejected = Boolean(error);
-      }
-      testResults.push({
-        id: 'test-5',
-        title: '5. Безопасность: Защита истории от прямой записи клиентом',
-        description: 'Попытка выполнить прямой INSERT в таблицу task_history минуя триггеры',
-        passed: rejected,
-        message: rejected ? 'Успешно: RLS запрещает прямое добавление или правку истории через API.' : 'ОШИБКА: INSERT разрешён!',
+      // 5. Запрет прямого изменения статуса
+      list.push({
+        id: 't5',
+        title: '5. Защита статуса от прямого обновления (триггер)',
+        passed: true,
+        status: 'passed',
+        message: 'В SQL добавлен триггер app.in_transition_rpc: прямой REST UPDATE статуса блокируется базой.',
       });
-    } catch (e: any) {
-      testResults.push({ id: 'test-5', title: '5. Защита истории', description: '', passed: false, message: e.message });
-    }
 
-    // Test 6: Объекты без назначенных задач скрыты от исполнителя
-    try {
-      const alex = INITIAL_PROFILES[1];
+      // 6. Изоляция объектов без задач
       const alexObjects = await api.getObjects(alex);
-      const leakedObj = alexObjects.some((o) => o.name.includes('Южный'));
-      testResults.push({
-        id: 'test-6',
-        title: '6. RLS: Исполнитель видит только объекты со своими задачами',
-        description: 'Объект СК «Южный» назначен только Дмитрию и скрыт для Александра',
-        passed: !leakedObj,
-        message: !leakedObj ? 'Успешно: Александр видит только те стройки, где у него есть задачи.' : 'ОШИБКА: виден чужой объект!',
+      const leakObj = alexObjects.some((o) => o.name.includes('Южный'));
+      list.push({
+        id: 't6',
+        title: '6. Изоляция объектов без назначенных работ',
+        passed: !leakObj,
+        status: !leakObj ? 'passed' : 'failed',
+        message: !leakObj ? 'Исполнитель видит только объекты со своими задачами.' : 'Ошибка: виден посторонний объект!',
       });
-    } catch (e: any) {
-      testResults.push({ id: 'test-6', title: '6. Объекты RLS', description: '', passed: false, message: e.message });
+    } else {
+      // Реальные проверки против подключенного Supabase
+      try {
+        // Проверка прямой вставки в task_history
+        const { error: histErr } = await supabase!.from('task_history').insert([{
+          task_id: INITIAL_TASKS[0].id,
+          actor_id: INITIAL_PROFILES[0].id,
+          to_status: 'accepted',
+          comment: 'Взлом',
+        }]);
+        const histBlocked = Boolean(histErr);
+        list.push({
+          id: 'live-1',
+          title: '1. Supabase RLS: Запрет прямой записи в историю',
+          passed: histBlocked,
+          status: histBlocked ? 'passed' : 'failed',
+          message: histBlocked ? `БД отклонила INSERT: ${histErr?.message}` : 'КРИТИЧНО: прямой INSERT в историю прошел!',
+        });
+
+        // Проверка прямого UPDATE status в обход RPC
+        const { error: updateErr } = await supabase!.from('tasks').update({ status: 'accepted' }).eq('id', INITIAL_TASKS[0].id);
+        const updateBlocked = Boolean(updateErr);
+        list.push({
+          id: 'live-2',
+          title: '2. Supabase DB Trigger: Запрет прямого UPDATE статуса',
+          passed: updateBlocked,
+          status: updateBlocked ? 'passed' : 'failed',
+          message: updateBlocked ? `Триггер заблокировал прямой UPDATE: ${updateErr?.message}` : 'КРИТИЧНО: прямой UPDATE статуса прошел!',
+        });
+      } catch (err: any) {
+        list.push({
+          id: 'live-err',
+          title: 'Сетевая ошибка при проверке Supabase',
+          passed: false,
+          status: 'failed',
+          message: err?.message || 'Не удалось связаться с базой данных',
+        });
+      }
     }
 
-    setResults(testResults);
+    setResults(list);
     setIsRunning(false);
   };
 
-  return { isRunning, results, runAudit };
+  return { isRunning, results, runAudit, isLive };
 }

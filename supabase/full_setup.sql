@@ -1,6 +1,7 @@
 -- =====================================================================
 -- TROAST CRM — ПОЛНЫЙ СКРИПТ НАСТРОЙКИ БАЗЫ ДАННЫХ (SUPABASE SQL EDITOR)
--- Включает: схему, RLS политики, RPC функцию переходов, триггеры и сид-данные
+-- Включает: схему, строгие RLS-политики, RPC transition_task,
+-- триггеры защиты от подмены автора/статуса/истории и сид-данные
 -- =====================================================================
 
 -- 1. СХЕМА ТАБЛИЦ И ТИПОВ
@@ -120,24 +121,15 @@ WITH CHECK (public.get_my_role() = 'manager');
 DROP POLICY IF EXISTS "Executors can view only assigned tasks" ON public.tasks;
 CREATE POLICY "Executors can view only assigned tasks"
 ON public.tasks FOR SELECT TO authenticated
-USING (
-    public.get_my_role() = 'executor' AND
-    assignee_id = auth.uid()
-);
+USING (public.get_my_role() = 'executor' AND assignee_id = auth.uid());
 
 DROP POLICY IF EXISTS "Executors can update only assigned tasks" ON public.tasks;
 CREATE POLICY "Executors can update only assigned tasks"
 ON public.tasks FOR UPDATE TO authenticated
-USING (
-    public.get_my_role() = 'executor' AND
-    assignee_id = auth.uid()
-)
-WITH CHECK (
-    public.get_my_role() = 'executor' AND
-    assignee_id = auth.uid()
-);
+USING (public.get_my_role() = 'executor' AND assignee_id = auth.uid())
+WITH CHECK (public.get_my_role() = 'executor' AND assignee_id = auth.uid());
 
--- История задач: постановщик видит все; исполнитель видит только для своих задач; модификация через API закрыта
+-- История задач: чтение по ролям, клиентский INSERT/UPDATE/DELETE полностью закрыт
 DROP POLICY IF EXISTS "Managers can view all task history" ON public.task_history;
 CREATE POLICY "Managers can view all task history"
 ON public.task_history FOR SELECT TO authenticated
@@ -167,7 +159,42 @@ DROP POLICY IF EXISTS "Prevent client delete on task_history" ON public.task_his
 CREATE POLICY "Prevent client delete on task_history"
 ON public.task_history FOR DELETE TO authenticated USING (false);
 
--- Триггер начальной записи истории при создании задачи
+-- Триггер проверки создания задачи (защита от создания принятой задачи и подмены автора)
+CREATE OR REPLACE FUNCTION public.trg_validate_task_insert_fn()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF length(trim(COALESCE(NEW.title, ''))) = 0 THEN
+        RAISE EXCEPTION 'Название задачи не может быть пустым';
+    END IF;
+
+    IF NEW.status IS DISTINCT FROM 'new' THEN
+        RAISE EXCEPTION 'Новая задача может быть создана только в статусе new';
+    END IF;
+
+    IF auth.uid() IS NOT NULL THEN
+        NEW.author_id := auth.uid();
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = NEW.assignee_id AND role = 'executor') THEN
+        RAISE EXCEPTION 'Исполнителем может быть назначен только пользователь с ролью executor';
+    END IF;
+
+    NEW.created_at := timezone('utc'::text, now());
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_validate_task_insert ON public.tasks;
+CREATE TRIGGER trg_validate_task_insert
+BEFORE INSERT ON public.tasks
+FOR EACH ROW
+EXECUTE FUNCTION public.trg_validate_task_insert_fn();
+
+-- Триггер начальной записи истории
 CREATE OR REPLACE FUNCTION public.trg_task_created_fn()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -187,7 +214,7 @@ AFTER INSERT ON public.tasks
 FOR EACH ROW
 EXECUTE FUNCTION public.trg_task_created_fn();
 
--- Триггер контроля переходов и неизменяемости полей при прямом REST UPDATE
+-- Триггер контроля переходов и запрета прямого UPDATE status
 CREATE OR REPLACE FUNCTION public.trg_validate_task_update_fn()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -201,31 +228,31 @@ BEGIN
     v_uid := auth.uid();
     v_user_role := public.get_my_role();
 
+    IF (OLD.author_id IS DISTINCT FROM NEW.author_id) OR (OLD.created_at IS DISTINCT FROM NEW.created_at) THEN
+        RAISE EXCEPTION 'Изменение автора и даты создания задачи запрещено';
+    END IF;
+
+    IF OLD.status IS DISTINCT FROM NEW.status THEN
+        IF current_setting('app.in_transition_rpc', true) IS DISTINCT FROM 'true' THEN
+            RAISE EXCEPTION 'Прямое изменение статуса через API запрещено. Используйте transition_task()';
+        END IF;
+    END IF;
+
     IF v_user_role = 'executor' THEN
         IF (OLD.title IS DISTINCT FROM NEW.title) OR
            (OLD.description IS DISTINCT FROM NEW.description) OR
            (OLD.object_id IS DISTINCT FROM NEW.object_id) OR
-           (OLD.assignee_id IS DISTINCT FROM NEW.assignee_id) OR
-           (OLD.author_id IS DISTINCT FROM NEW.author_id) OR
-           (OLD.created_at IS DISTINCT FROM NEW.created_at) THEN
-            RAISE EXCEPTION 'Исполнитель не имеет права изменять основные реквизиты задачи (только статус)';
-        END IF;
-
-        IF NOT (
-            (OLD.status = 'new' AND NEW.status = 'in_progress') OR
-            (OLD.status = 'in_progress' AND NEW.status = 'review') OR
-            (OLD.status = 'rework' AND NEW.status = 'in_progress')
-        ) THEN
-            RAISE EXCEPTION 'Недопустимый переход статуса для исполнителя: % -> %', OLD.status, NEW.status;
+           (OLD.assignee_id IS DISTINCT FROM NEW.assignee_id) THEN
+            RAISE EXCEPTION 'Исполнитель не имеет права изменять реквизиты задачи';
         END IF;
     END IF;
 
-    IF v_user_role = 'manager' AND (OLD.status IS DISTINCT FROM NEW.status) THEN
-        IF NOT (
-            (OLD.status = 'review' AND NEW.status = 'accepted') OR
-            (OLD.status = 'review' AND NEW.status = 'rework')
-        ) THEN
-            RAISE EXCEPTION 'Недопустимый переход статуса для постановщика: % -> %', OLD.status, NEW.status;
+    IF OLD.assignee_id IS DISTINCT FROM NEW.assignee_id THEN
+        IF v_user_role <> 'manager' THEN
+            RAISE EXCEPTION 'Только постановщик может переназначать исполнителя';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = NEW.assignee_id AND role = 'executor') THEN
+            RAISE EXCEPTION 'Новый исполнитель обязан иметь роль executor';
         END IF;
     END IF;
 
@@ -238,6 +265,27 @@ CREATE TRIGGER trg_validate_task_update
 BEFORE UPDATE ON public.tasks
 FOR EACH ROW
 EXECUTE FUNCTION public.trg_validate_task_update_fn();
+
+-- Триггер валидации объектов
+CREATE OR REPLACE FUNCTION public.trg_validate_object_fn()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF length(trim(COALESCE(NEW.name, ''))) = 0 OR length(trim(COALESCE(NEW.address, ''))) = 0 THEN
+        RAISE EXCEPTION 'Название и адрес строительного объекта обязательны';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_validate_object ON public.objects;
+CREATE TRIGGER trg_validate_object
+BEFORE INSERT OR UPDATE ON public.objects
+FOR EACH ROW
+EXECUTE FUNCTION public.trg_validate_object_fn();
 
 -- Атомарный переход статуса (RPC)
 CREATE OR REPLACE FUNCTION public.transition_task(
@@ -272,7 +320,7 @@ BEGIN
     END IF;
 
     IF v_task.status <> p_expected_status THEN
-        RAISE EXCEPTION 'Конфликт состояния: ожидался статус %, но текущий статус задачи %', v_task.status, p_expected_status;
+        RAISE EXCEPTION 'Конфликт состояния: ожидался статус %, но текущий статус %', v_task.status, p_expected_status;
     END IF;
 
     v_role := public.get_my_role();
@@ -283,13 +331,11 @@ BEGIN
             RAISE EXCEPTION 'Вы можете менять статус только назначенных вам задач';
         END IF;
 
-        IF v_task.status = 'new' AND p_target_status = 'in_progress' THEN
-            -- OK
-        ELSIF v_task.status = 'in_progress' AND p_target_status = 'review' THEN
-            -- OK
-        ELSIF v_task.status = 'rework' AND p_target_status = 'in_progress' THEN
-            -- OK
-        ELSE
+        IF NOT (
+            (v_task.status = 'new' AND p_target_status = 'in_progress') OR
+            (v_task.status = 'in_progress' AND p_target_status = 'review') OR
+            (v_task.status = 'rework' AND p_target_status = 'in_progress')
+        ) THEN
             RAISE EXCEPTION 'Недопустимый переход статуса для исполнителя: % -> %', v_task.status, p_target_status;
         END IF;
 
@@ -307,25 +353,17 @@ BEGIN
         RAISE EXCEPTION 'Неизвестная роль пользователя';
     END IF;
 
+    PERFORM set_config('app.in_transition_rpc', 'true', true);
+
     UPDATE public.tasks
     SET status = p_target_status
     WHERE id = p_task_id
     RETURNING * INTO v_task;
 
     INSERT INTO public.task_history (
-        task_id,
-        actor_id,
-        from_status,
-        to_status,
-        comment,
-        created_at
+        task_id, actor_id, from_status, to_status, comment, created_at
     ) VALUES (
-        p_task_id,
-        v_uid,
-        p_expected_status,
-        p_target_status,
-        v_trimmed_comment,
-        timezone('utc'::text, now())
+        p_task_id, v_uid, p_expected_status, p_target_status, v_trimmed_comment, timezone('utc'::text, now())
     );
 
     RETURN v_task;
@@ -358,7 +396,6 @@ DECLARE
 BEGIN
     v_password_hash := crypt('TestPass123!', gen_salt('bf'));
 
-    -- Пользователи auth.users
     IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = v_manager_id OR email = 'manager@troast.ru') THEN
         INSERT INTO auth.users (
             id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -395,7 +432,6 @@ BEGIN
         );
     END IF;
 
-    -- Профили
     INSERT INTO public.profiles (id, email, display_name, role)
     VALUES
         (v_manager_id, 'manager@troast.ru', 'Алексей Смирнов (Руководитель)', 'manager'),
@@ -405,7 +441,6 @@ BEGIN
         display_name = EXCLUDED.display_name,
         role = EXCLUDED.role;
 
-    -- Объекты
     INSERT INTO public.objects (id, name, address)
     VALUES
         (v_obj1_id, 'ЖК «Северные Высоты»', 'г. Москва, ул. Полярная, д. 14'),
@@ -413,8 +448,8 @@ BEGIN
         (v_obj3_id, 'СК «Южный Логистик»', 'г. Казань, ул. Промышленная, д. 5')
     ON CONFLICT (id) DO NOTHING;
 
-    -- Задачи
     ALTER TABLE public.tasks DISABLE TRIGGER trg_task_created;
+    ALTER TABLE public.tasks DISABLE TRIGGER trg_validate_task_insert;
     ALTER TABLE public.tasks DISABLE TRIGGER trg_validate_task_update;
 
     INSERT INTO public.tasks (id, title, description, object_id, assignee_id, author_id, status, created_at)
@@ -428,9 +463,9 @@ BEGIN
     ON CONFLICT (id) DO NOTHING;
 
     ALTER TABLE public.tasks ENABLE TRIGGER trg_task_created;
+    ALTER TABLE public.tasks ENABLE TRIGGER trg_validate_task_insert;
     ALTER TABLE public.tasks ENABLE TRIGGER trg_validate_task_update;
 
-    -- История
     INSERT INTO public.task_history (task_id, actor_id, from_status, to_status, comment, created_at)
     VALUES (v_task1_id, v_manager_id, NULL, 'new', 'Задача создана', now() - INTERVAL '3 days')
     ON CONFLICT DO NOTHING;

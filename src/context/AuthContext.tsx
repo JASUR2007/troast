@@ -58,6 +58,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           const profile = await api.getProfileById(session.user.id);
           setCurrentUser(profile);
+          try {
+            const list = await api.getProfiles();
+            if (list.length > 0) setProfiles(list);
+          } catch {
+            // fallback
+          }
         } else {
           setCurrentUser(null);
         }

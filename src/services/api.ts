@@ -13,11 +13,14 @@ export const api = {
   // Objects
   getObjects: objectService.getObjects.bind(objectService),
   createObject: objectService.createObject.bind(objectService),
+  updateObject: objectService.updateObject.bind(objectService),
+  deleteObject: objectService.deleteObject.bind(objectService),
 
   // Tasks
   getTasks: taskService.getTasks.bind(taskService),
   getTaskById: taskService.getTaskById.bind(taskService),
   createTask: taskService.createTask.bind(taskService),
+  updateTask: taskService.updateTask.bind(taskService),
   deleteTask: taskService.deleteTask.bind(taskService),
   getTaskHistory: taskService.getTaskHistory.bind(taskService),
 

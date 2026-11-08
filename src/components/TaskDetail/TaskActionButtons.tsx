@@ -1,7 +1,7 @@
 // src/components/TaskDetail/TaskActionButtons.tsx
 import React from 'react';
 import { Task, TaskStatus } from '../../types';
-import { PlayCircle, Send, CheckCircle2, RotateCcw, Trash2 } from 'lucide-react';
+import { PlayCircle, Send, CheckCircle2, RotateCcw, Trash2, Edit } from 'lucide-react';
 
 interface TaskActionButtonsProps {
   task: Task;
@@ -11,6 +11,7 @@ interface TaskActionButtonsProps {
   onTransition: (status: TaskStatus) => void;
   onOpenReworkModal: () => void;
   onDelete: () => void;
+  onEdit?: () => void;
 }
 
 export const TaskActionButtons: React.FC<TaskActionButtonsProps> = ({
@@ -21,6 +22,7 @@ export const TaskActionButtons: React.FC<TaskActionButtonsProps> = ({
   onTransition,
   onOpenReworkModal,
   onDelete,
+  onEdit,
 }) => {
   return (
     <div className="bg-sky-50/50 p-4 rounded-xl border border-sky-100">
@@ -29,7 +31,6 @@ export const TaskActionButtons: React.FC<TaskActionButtonsProps> = ({
       </h4>
 
       <div className="flex flex-wrap items-center gap-2">
-        {/* Executor transitions */}
         {isAssignedExecutor && task.status === 'new' && (
           <button
             onClick={() => onTransition('in_progress')}
@@ -63,7 +64,6 @@ export const TaskActionButtons: React.FC<TaskActionButtonsProps> = ({
           </button>
         )}
 
-        {/* Manager transitions */}
         {isManager && task.status === 'review' && (
           <>
             <button
@@ -74,7 +74,6 @@ export const TaskActionButtons: React.FC<TaskActionButtonsProps> = ({
               <CheckCircle2 className="w-4 h-4" />
               <span>Принять задачу</span>
             </button>
-
             <button
               onClick={onOpenReworkModal}
               disabled={isProcessing}
@@ -94,7 +93,17 @@ export const TaskActionButtons: React.FC<TaskActionButtonsProps> = ({
         )}
 
         {isManager && (
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            {onEdit && (
+              <button
+                onClick={onEdit}
+                disabled={isProcessing}
+                className="inline-flex items-center space-x-1 px-3 py-1.5 text-xs text-sky-700 hover:text-sky-800 bg-white hover:bg-sky-50 rounded-lg border border-slate-200 transition"
+              >
+                <Edit className="w-3.5 h-3.5" />
+                <span>Редактировать</span>
+              </button>
+            )}
             <button
               onClick={onDelete}
               disabled={isProcessing}
