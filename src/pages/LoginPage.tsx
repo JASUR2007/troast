@@ -1,11 +1,16 @@
 // src/pages/LoginPage.tsx
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useSEO } from '../hooks/useSEO';
 import { QuickLoginButtons } from './LoginPage/QuickLoginButtons';
 import { LoginForm } from './LoginPage/LoginForm';
 import { HardHat, AlertCircle } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
+  useSEO({
+    title: 'Вход в систему',
+    description: 'Авторизация в мини-CRM строительной компании: Объекты и задачи (Troast CRM)',
+  });
   const { signIn, switchQuickUser, isSupabaseConnected, enterDemoMode } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');

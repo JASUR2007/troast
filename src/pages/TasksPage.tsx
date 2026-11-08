@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTasks } from '../hooks/useTasks';
+import { useSEO } from '../hooks/useSEO';
 import { TaskCard } from '../components/Tasks/TaskCard';
 import { TaskStatusFilters } from '../components/Tasks/TaskStatusFilters';
 import { TaskDetailModal } from '../components/TaskDetailModal';
@@ -10,14 +11,20 @@ import { CheckSquare, Search, Plus } from 'lucide-react';
 
 export const TasksPage: React.FC = () => {
   const { currentUser, profiles } = useAuth();
+  const isManager = currentUser?.role === 'manager';
+
+  useSEO({
+    title: isManager ? 'Все задачи компании' : 'Мои задачи',
+    description: isManager
+      ? 'Контроль всех строительных задач компании Troast'
+      : 'Личный список строительных задач с изоляцией RLS',
+  });
   const { tasks, objects, isLoading, refresh, createTask } = useTasks();
   const [search, setSearch] = useState('');
   const [selectedObjectId, setSelectedObjectId] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
-  const isManager = currentUser?.role === 'manager';
 
   const statusCounts = {
     all: tasks.length,

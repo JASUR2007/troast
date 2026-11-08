@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useSEO } from '../hooks/useSEO';
 import { api } from '../services/api';
 import { BuildingObject, Task } from '../types';
 import { TaskCard } from '../components/Tasks/TaskCard';
@@ -35,7 +36,10 @@ export const ObjectDetailPage: React.FC = () => {
       const found = userObjects.find((o) => o.id === id) || null;
       setCurrentObject(found);
       setTasks(objectTasks);
-      if (found) document.title = `${found.name} — Troast CRM`;
+  useSEO({
+    title: currentObject ? currentObject.name : 'Карточка объекта',
+    description: currentObject ? `Задачи и готовность объекта: ${currentObject.name}, ${currentObject.address}` : 'Объект строительства',
+  });
     } finally {
       setIsLoading(false);
     }

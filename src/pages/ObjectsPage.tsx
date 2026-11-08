@@ -3,11 +3,16 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useObjects } from '../hooks/useObjects';
+import { useSEO } from '../hooks/useSEO';
 import { ObjectCard } from '../components/Objects/ObjectCard';
 import { CreateObjectModal } from '../components/CreateObjectModal';
 import { Building2, Plus, Search } from 'lucide-react';
 
 export const ObjectsPage: React.FC = () => {
+  useSEO({
+    title: 'Объекты строительства',
+    description: 'Реестр строительных объектов, контроль прогресса и задач (Troast CRM)',
+  });
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const { objects, tasks, isLoading, createObject } = useObjects();
