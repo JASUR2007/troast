@@ -24,3 +24,10 @@ export const isSupabaseConfigured = Boolean(
 export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
+
+export function isLiveMode(): boolean {
+  if (typeof window !== 'undefined' && localStorage.getItem('troast_force_demo') === 'true') {
+    return false;
+  }
+  return Boolean(isSupabaseConfigured && supabase);
+}

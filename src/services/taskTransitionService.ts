@@ -1,5 +1,5 @@
 // src/services/taskTransitionService.ts
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isLiveMode } from '../lib/supabase';
 import { Profile, Task, TaskHistoryItem, TaskStatus } from '../types';
 import { INITIAL_TASKS, INITIAL_HISTORY } from '../lib/mockData';
 import { STORAGE_TASKS, STORAGE_HISTORY, getStored, setStored } from './storage';
@@ -16,8 +16,8 @@ export const taskTransitionService = {
   ): Promise<Task> {
     const { taskId, expectedStatus, targetStatus, comment = '' } = params;
 
-    if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.rpc('transition_task', {
+    if (isLiveMode()) {
+      const { error } = await supabase!.rpc('transition_task', {
         p_task_id: taskId,
         p_expected_status: expectedStatus,
         p_target_status: targetStatus,
@@ -28,7 +28,7 @@ export const taskTransitionService = {
         throw new Error(error.message || 'Ошибка смены статуса задачи');
       }
 
-      const { data: updated, error: fetchErr } = await supabase
+      const { data: updated, error: fetchErr } = await supabase!
         .from('tasks')
         .select('*, object:objects(*), assignee:profiles!tasks_assignee_id_fkey(*), author:profiles!tasks_author_id_fkey(*)')
         .eq('id', taskId)

@@ -1,12 +1,12 @@
 // src/services/profileService.ts
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isLiveMode } from '../lib/supabase';
 import { Profile } from '../types';
 import { INITIAL_PROFILES } from '../lib/mockData';
 
 export const profileService = {
   async getProfiles(): Promise<Profile[]> {
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase
+    if (isLiveMode()) {
+      const { data, error } = await supabase!
         .from('profiles')
         .select('*')
         .order('display_name');
@@ -17,8 +17,8 @@ export const profileService = {
   },
 
   async getProfileById(userId: string): Promise<Profile | null> {
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase
+    if (isLiveMode()) {
+      const { data, error } = await supabase!
         .from('profiles')
         .select('*')
         .eq('id', userId)

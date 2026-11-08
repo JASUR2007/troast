@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Building2, CheckSquare, ShieldCheck, User, LogOut, RotateCcw, X } from 'lucide-react';
+import { Building2, CheckSquare, ShieldCheck, User, LogOut, RotateCcw, X, Database } from 'lucide-react';
 import { INITIAL_PROFILES } from '../lib/mockData';
 import { api } from '../services/api';
 
@@ -11,7 +11,7 @@ interface MobileNavProps {
 }
 
 export const MobileNav: React.FC<MobileNavProps> = ({ onOpenSecurityAudit }) => {
-  const { currentUser, switchQuickUser, signOut } = useAuth();
+  const { currentUser, switchQuickUser, signOut, isSupabaseConnected, toggleLiveDemoMode } = useAuth();
   const location = useLocation();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
@@ -111,21 +111,30 @@ export const MobileNav: React.FC<MobileNavProps> = ({ onOpenSecurityAudit }) => 
               </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-100 flex gap-2">
+            <div className="pt-2 border-t border-slate-100 space-y-2">
               <button
-                onClick={() => { api.resetDemoData(); window.location.reload(); }}
-                className="flex-1 py-2 text-xs font-semibold text-slate-700 bg-slate-100 rounded-lg flex items-center justify-center gap-1.5"
+                onClick={toggleLiveDemoMode}
+                className="w-full py-2 text-xs font-semibold text-sky-700 bg-sky-50 rounded-lg flex items-center justify-center gap-1.5"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Сброс</span>
+                <Database className="w-3.5 h-3.5" />
+                <span>{isSupabaseConnected ? 'Переключить в Демо-режим' : 'Переключить в Live Supabase'}</span>
               </button>
-              <button
-                onClick={() => { signOut(); setIsProfileModalOpen(false); }}
-                className="flex-1 py-2 text-xs font-semibold text-rose-600 bg-rose-50 rounded-lg flex items-center justify-center gap-1.5"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Выход</span>
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { api.resetDemoData(); window.location.reload(); }}
+                  className="flex-1 py-2 text-xs font-semibold text-slate-700 bg-slate-100 rounded-lg flex items-center justify-center gap-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Сброс</span>
+                </button>
+                <button
+                  onClick={() => { signOut(); setIsProfileModalOpen(false); }}
+                  className="flex-1 py-2 text-xs font-semibold text-rose-600 bg-rose-50 rounded-lg flex items-center justify-center gap-1.5"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Выход</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

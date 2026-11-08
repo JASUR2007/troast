@@ -3,11 +3,11 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { Building2, CheckSquare, ShieldCheck, LogOut, ChevronDown, HardHat, RotateCcw } from 'lucide-react';
+import { Building2, CheckSquare, ShieldCheck, LogOut, ChevronDown, HardHat, RotateCcw, Database } from 'lucide-react';
 import { INITIAL_PROFILES } from '../lib/mockData';
 
 export const Navbar: React.FC<{ onOpenSecurityAudit: () => void }> = ({ onOpenSecurityAudit }) => {
-  const { currentUser, signOut, switchQuickUser, isSupabaseConnected } = useAuth();
+  const { currentUser, signOut, switchQuickUser, isSupabaseConnected, toggleLiveDemoMode } = useAuth();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -110,6 +110,13 @@ export const Navbar: React.FC<{ onOpenSecurityAudit: () => void }> = ({ onOpenSe
                     ))}
                   </div>
                   <div className="border-t border-slate-100 pt-1 mt-1">
+                    <button
+                      onClick={toggleLiveDemoMode}
+                      className="w-full text-left px-4 py-1.5 text-xs text-sky-700 hover:bg-sky-50 flex items-center space-x-2 font-medium"
+                    >
+                      <Database className="w-3.5 h-3.5" />
+                      <span>{isSupabaseConnected ? 'Перейти в Демо-режим' : 'Перейти в Live Supabase'}</span>
+                    </button>
                     <button
                       onClick={() => { api.resetDemoData(); window.location.reload(); }}
                       className="w-full text-left px-4 py-1.5 text-xs text-slate-600 hover:bg-slate-50 flex items-center space-x-2"

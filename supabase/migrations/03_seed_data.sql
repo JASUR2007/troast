@@ -28,37 +28,67 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = v_manager_id OR email = 'manager@troast.ru') THEN
         INSERT INTO auth.users (
             id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
-            raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+            raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+            confirmation_token, recovery_token, email_change, email_change_token_new, email_change_token_current, is_sso_user
         ) VALUES (
             v_manager_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
             'manager@troast.ru', v_password_hash, now(),
             '{"provider":"email","providers":["email"]}', '{"display_name":"Алексей Смирнов (Руководитель)"}',
-            now(), now()
+            now(), now(),
+            '', '', '', '', '', false
         );
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = v_exec1_id OR email = 'alex@troast.ru') THEN
         INSERT INTO auth.users (
             id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
-            raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+            raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+            confirmation_token, recovery_token, email_change, email_change_token_new, email_change_token_current, is_sso_user
         ) VALUES (
             v_exec1_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
             'alex@troast.ru', v_password_hash, now(),
             '{"provider":"email","providers":["email"]}', '{"display_name":"Александр Воронов (Электрик)"}',
-            now(), now()
+            now(), now(),
+            '', '', '', '', '', false
         );
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = v_exec2_id OR email = 'dmitry@troast.ru') THEN
         INSERT INTO auth.users (
             id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
-            raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+            raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+            confirmation_token, recovery_token, email_change, email_change_token_new, email_change_token_current, is_sso_user
         ) VALUES (
             v_exec2_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
             'dmitry@troast.ru', v_password_hash, now(),
             '{"provider":"email","providers":["email"]}', '{"display_name":"Дмитрий Кузнецов (Прораб)"}',
-            now(), now()
+            now(), now(),
+            '', '', '', '', '', false
         );
+    END IF;
+
+    -- Привязка identities для GoTrue Auth
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'auth' AND table_name = 'identities' AND column_name = 'provider_id'
+    ) THEN
+        EXECUTE $dyn$
+            INSERT INTO auth.identities (id, provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+            VALUES 
+                (gen_random_uuid(), $1::text, $1, json_build_object('sub', $1::text, 'email', 'manager@troast.ru')::jsonb, 'email', now(), now(), now()),
+                (gen_random_uuid(), $2::text, $2, json_build_object('sub', $2::text, 'email', 'alex@troast.ru')::jsonb, 'email', now(), now(), now()),
+                (gen_random_uuid(), $3::text, $3, json_build_object('sub', $3::text, 'email', 'dmitry@troast.ru')::jsonb, 'email', now(), now(), now())
+            ON CONFLICT DO NOTHING
+        $dyn$ USING v_manager_id, v_exec1_id, v_exec2_id;
+    ELSE
+        EXECUTE $dyn$
+            INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+            VALUES 
+                (gen_random_uuid(), $1, json_build_object('sub', $1::text, 'email', 'manager@troast.ru')::jsonb, 'email', now(), now(), now()),
+                (gen_random_uuid(), $2, json_build_object('sub', $2::text, 'email', 'alex@troast.ru')::jsonb, 'email', now(), now(), now()),
+                (gen_random_uuid(), $3, json_build_object('sub', $3::text, 'email', 'dmitry@troast.ru')::jsonb, 'email', now(), now(), now())
+            ON CONFLICT DO NOTHING
+        $dyn$ USING v_manager_id, v_exec1_id, v_exec2_id;
     END IF;
 
     -- 2. Заполнение public.profiles
@@ -81,6 +111,7 @@ BEGIN
 
     -- 4. Задачи
     ALTER TABLE public.tasks DISABLE TRIGGER trg_task_created;
+    ALTER TABLE public.tasks DISABLE TRIGGER trg_validate_task_insert;
     ALTER TABLE public.tasks DISABLE TRIGGER trg_validate_task_update;
 
     INSERT INTO public.tasks (id, title, description, object_id, assignee_id, author_id, status, created_at)
@@ -94,44 +125,45 @@ BEGIN
     ON CONFLICT (id) DO NOTHING;
 
     ALTER TABLE public.tasks ENABLE TRIGGER trg_task_created;
+    ALTER TABLE public.tasks ENABLE TRIGGER trg_validate_task_insert;
     ALTER TABLE public.tasks ENABLE TRIGGER trg_validate_task_update;
 
-    -- 5. История
-    INSERT INTO public.task_history (task_id, actor_id, from_status, to_status, comment, created_at)
-    VALUES (v_task1_id, v_manager_id, NULL, 'new', 'Задача создана', now() - INTERVAL '3 days')
-    ON CONFLICT DO NOTHING;
+    -- 5. История (с фиксированными UUID для исключения дублирования при повторном запуске)
+    INSERT INTO public.task_history (id, task_id, actor_id, from_status, to_status, comment, created_at)
+    VALUES ('b1b2c3d4-e5f6-4a1b-8c2d-000000000001'::uuid, v_task1_id, v_manager_id, NULL, 'new', 'Задача создана', now() - INTERVAL '3 days')
+    ON CONFLICT (id) DO NOTHING;
 
-    INSERT INTO public.task_history (task_id, actor_id, from_status, to_status, comment, created_at)
+    INSERT INTO public.task_history (id, task_id, actor_id, from_status, to_status, comment, created_at)
     VALUES 
-        (v_task2_id, v_manager_id, NULL, 'new', 'Задача создана', now() - INTERVAL '2 days'),
-        (v_task2_id, v_exec1_id, 'new', 'in_progress', 'Приступил к сборке щита', now() - INTERVAL '1 day 18 hours')
-    ON CONFLICT DO NOTHING;
+        ('b1b2c3d4-e5f6-4a1b-8c2d-000000000002'::uuid, v_task2_id, v_manager_id, NULL, 'new', 'Задача создана', now() - INTERVAL '2 days'),
+        ('b1b2c3d4-e5f6-4a1b-8c2d-000000000003'::uuid, v_task2_id, v_exec1_id, 'new', 'in_progress', 'Приступил к сборке щита', now() - INTERVAL '1 day 18 hours')
+    ON CONFLICT (id) DO NOTHING;
 
-    INSERT INTO public.task_history (task_id, actor_id, from_status, to_status, comment, created_at)
+    INSERT INTO public.task_history (id, task_id, actor_id, from_status, to_status, comment, created_at)
     VALUES 
-        (v_task3_id, v_manager_id, NULL, 'new', 'Задача создана', now() - INTERVAL '4 days'),
-        (v_task3_id, v_exec1_id, 'new', 'in_progress', 'Начал монтаж и проверку шлейфов', now() - INTERVAL '3 days 20 hours'),
-        (v_task3_id, v_exec1_id, 'in_progress', 'review', 'Все датчики протестированы, акты подписаны со стороны бригады', now() - INTERVAL '5 hours')
-    ON CONFLICT DO NOTHING;
+        ('b1b2c3d4-e5f6-4a1b-8c2d-000000000004'::uuid, v_task3_id, v_manager_id, NULL, 'new', 'Задача создана', now() - INTERVAL '4 days'),
+        ('b1b2c3d4-e5f6-4a1b-8c2d-000000000005'::uuid, v_task3_id, v_exec1_id, 'new', 'in_progress', 'Начал монтаж и проверку шлейфов', now() - INTERVAL '3 days 20 hours'),
+        ('b1b2c3d4-e5f6-4a1b-8c2d-000000000006'::uuid, v_task3_id, v_exec1_id, 'in_progress', 'review', 'Все датчики протестированы, акты подписаны со стороны бригады', now() - INTERVAL '5 hours')
+    ON CONFLICT (id) DO NOTHING;
 
-    INSERT INTO public.task_history (task_id, actor_id, from_status, to_status, comment, created_at)
+    INSERT INTO public.task_history (id, task_id, actor_id, from_status, to_status, comment, created_at)
     VALUES 
-        (v_task4_id, v_manager_id, NULL, 'new', 'Задача создана', now() - INTERVAL '5 days'),
-        (v_task4_id, v_exec2_id, 'new', 'in_progress', 'Бригада вышла на монтаж утеплителя', now() - INTERVAL '4 days 12 hours'),
-        (v_task4_id, v_exec2_id, 'in_progress', 'review', 'Фасад утеплен, готов к сдаче', now() - INTERVAL '2 days'),
-        (v_task4_id, v_manager_id, 'review', 'rework', 'Обнаружены зазоры между плитами по оси 3-5, исправить гидроизоляцию мембраны', now() - INTERVAL '1 day')
-    ON CONFLICT DO NOTHING;
+        ('b1b2c3d4-e5f6-4a1b-8c2d-000000000007'::uuid, v_task4_id, v_manager_id, NULL, 'new', 'Задача создана', now() - INTERVAL '5 days'),
+        ('b1b2c3d4-e5f6-4a1b-8c2d-000000000008'::uuid, v_task4_id, v_exec2_id, 'new', 'in_progress', 'Бригада вышла на монтаж утеплителя', now() - INTERVAL '4 days 12 hours'),
+        ('b1b2c3d4-e5f6-4a1b-8c2d-000000000009'::uuid, v_task4_id, v_exec2_id, 'in_progress', 'review', 'Фасад утеплен, готов к сдаче', now() - INTERVAL '2 days'),
+        ('b1b2c3d4-e5f6-4a1b-8c2d-000000000010'::uuid, v_task4_id, v_manager_id, 'review', 'rework', 'Обнаружены зазоры между плитами по оси 3-5, исправить гидроизоляцию мембраны', now() - INTERVAL '1 day')
+    ON CONFLICT (id) DO NOTHING;
 
-    INSERT INTO public.task_history (task_id, actor_id, from_status, to_status, comment, created_at)
+    INSERT INTO public.task_history (id, task_id, actor_id, from_status, to_status, comment, created_at)
     VALUES 
-        (v_task5_id, v_manager_id, NULL, 'new', 'Задача создана', now() - INTERVAL '6 days'),
-        (v_task5_id, v_exec2_id, 'new', 'in_progress', 'Завезли раствор и технику', now() - INTERVAL '5 days 10 hours'),
-        (v_task5_id, v_exec2_id, 'in_progress', 'review', 'Стяжка высохла, перепады проверены уровнем — в норме', now() - INTERVAL '2 days 14 hours'),
-        (v_task5_id, v_manager_id, 'review', 'accepted', 'Принято без замечаний, геометрия и прочность соответствуют СП', now() - INTERVAL '1 day 8 hours')
-    ON CONFLICT DO NOTHING;
+        ('b1b2c3d4-e5f6-4a1b-8c2d-000000000011'::uuid, v_task5_id, v_manager_id, NULL, 'new', 'Задача создана', now() - INTERVAL '6 days'),
+        ('b1b2c3d4-e5f6-4a1b-8c2d-000000000012'::uuid, v_task5_id, v_exec2_id, 'new', 'in_progress', 'Завезли раствор и технику', now() - INTERVAL '5 days 10 hours'),
+        ('b1b2c3d4-e5f6-4a1b-8c2d-000000000013'::uuid, v_task5_id, v_exec2_id, 'in_progress', 'review', 'Стяжка высохла, перепады проверены уровнем — в норме', now() - INTERVAL '2 days 14 hours'),
+        ('b1b2c3d4-e5f6-4a1b-8c2d-000000000014'::uuid, v_task5_id, v_manager_id, 'review', 'accepted', 'Принято без замечаний, геометрия и прочность соответствуют СП', now() - INTERVAL '1 day 8 hours')
+    ON CONFLICT (id) DO NOTHING;
 
-    INSERT INTO public.task_history (task_id, actor_id, from_status, to_status, comment, created_at)
-    VALUES (v_task6_id, v_manager_id, NULL, 'new', 'Задача создана', now() - INTERVAL '1 day')
-    ON CONFLICT DO NOTHING;
+    INSERT INTO public.task_history (id, task_id, actor_id, from_status, to_status, comment, created_at)
+    VALUES ('b1b2c3d4-e5f6-4a1b-8c2d-000000000015'::uuid, v_task6_id, v_manager_id, NULL, 'new', 'Задача создана', now() - INTERVAL '1 day')
+    ON CONFLICT (id) DO NOTHING;
 
 END $$;

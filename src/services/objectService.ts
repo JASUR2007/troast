@@ -1,13 +1,13 @@
 // src/services/objectService.ts
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isLiveMode } from '../lib/supabase';
 import { BuildingObject, Profile, Task } from '../types';
 import { INITIAL_OBJECTS, INITIAL_TASKS } from '../lib/mockData';
 import { STORAGE_OBJECTS, STORAGE_TASKS, getStored, setStored } from './storage';
 
 export const objectService = {
   async getObjects(currentUser: Profile): Promise<BuildingObject[]> {
-    if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase
+    if (isLiveMode()) {
+      const { data, error } = await supabase!
         .from('objects')
         .select('*')
         .order('created_at', { ascending: false });
@@ -30,8 +30,8 @@ export const objectService = {
     if (currentUser.role !== 'manager') {
       throw new Error('Доступ запрещён: только постановщик может создавать объекты');
     }
-    if (isSupabaseConfigured && supabase) {
-      const { data: created, error } = await supabase
+    if (isLiveMode()) {
+      const { data: created, error } = await supabase!
         .from('objects')
         .insert([{ name: data.name.trim(), address: data.address.trim() }])
         .select()
@@ -55,8 +55,8 @@ export const objectService = {
     if (currentUser.role !== 'manager') {
       throw new Error('Доступ запрещён: только постановщик может редактировать объекты');
     }
-    if (isSupabaseConfigured && supabase) {
-      const { data: updated, error } = await supabase
+    if (isLiveMode()) {
+      const { data: updated, error } = await supabase!
         .from('objects')
         .update({ name: data.name.trim(), address: data.address.trim() })
         .eq('id', id)
@@ -78,8 +78,8 @@ export const objectService = {
     if (currentUser.role !== 'manager') {
       throw new Error('Доступ запрещён: только постановщик может удалять объекты');
     }
-    if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.from('objects').delete().eq('id', id);
+    if (isLiveMode()) {
+      const { error } = await supabase!.from('objects').delete().eq('id', id);
       if (error) throw error;
       return;
     }
