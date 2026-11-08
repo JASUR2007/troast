@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
+import { MobileNav } from './components/MobileNav';
 import { LoginPage } from './pages/LoginPage';
 import { ObjectsPage } from './pages/ObjectsPage';
 import { ObjectDetailPage } from './pages/ObjectDetailPage';
@@ -29,7 +30,7 @@ const AppContent: React.FC = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar onOpenSecurityAudit={() => setIsSecurityAuditOpen(true)} />
 
-      <main className="flex-1 pb-16">
+      <main className="flex-1 pb-24 md:pb-16">
         <Routes>
           <Route path="/" element={<Navigate to="/objects" replace />} />
           <Route path="/objects" element={<ObjectsPage />} />
@@ -38,6 +39,8 @@ const AppContent: React.FC = () => {
           <Route path="*" element={<Navigate to="/objects" replace />} />
         </Routes>
       </main>
+
+      <MobileNav onOpenSecurityAudit={() => setIsSecurityAuditOpen(true)} />
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-6">
