@@ -399,36 +399,42 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = v_manager_id OR email = 'manager@troast.ru') THEN
         INSERT INTO auth.users (
             id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
-            raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+            raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+            confirmation_token, recovery_token, email_change, email_change_token_new, email_change_token_current, is_sso_user
         ) VALUES (
             v_manager_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
             'manager@troast.ru', v_password_hash, now(),
             '{"provider":"email","providers":["email"]}', '{"display_name":"Алексей Смирнов (Руководитель)"}',
-            now(), now()
+            now(), now(),
+            '', '', '', '', '', false
         );
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = v_exec1_id OR email = 'alex@troast.ru') THEN
         INSERT INTO auth.users (
             id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
-            raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+            raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+            confirmation_token, recovery_token, email_change, email_change_token_new, email_change_token_current, is_sso_user
         ) VALUES (
             v_exec1_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
             'alex@troast.ru', v_password_hash, now(),
             '{"provider":"email","providers":["email"]}', '{"display_name":"Александр Воронов (Электрик)"}',
-            now(), now()
+            now(), now(),
+            '', '', '', '', '', false
         );
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = v_exec2_id OR email = 'dmitry@troast.ru') THEN
         INSERT INTO auth.users (
             id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
-            raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+            raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+            confirmation_token, recovery_token, email_change, email_change_token_new, email_change_token_current, is_sso_user
         ) VALUES (
             v_exec2_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
             'dmitry@troast.ru', v_password_hash, now(),
             '{"provider":"email","providers":["email"]}', '{"display_name":"Дмитрий Кузнецов (Прораб)"}',
-            now(), now()
+            now(), now(),
+            '', '', '', '', '', false
         );
     END IF;
 
