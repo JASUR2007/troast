@@ -32,6 +32,7 @@ export const EditObjectModal: React.FC<EditObjectModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!name.trim() || !address.trim()) {
       setError('Заполните название и адрес объекта');
       return;

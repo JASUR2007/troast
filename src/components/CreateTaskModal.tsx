@@ -37,6 +37,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!title.trim() || !objectId || !assigneeId) {
       setError('Заполните все обязательные поля');
       return;

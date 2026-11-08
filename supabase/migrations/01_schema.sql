@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     email TEXT NOT NULL,
     display_name TEXT NOT NULL,
     role user_role NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
 -- 3. Таблица objects (объекты строительства)
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS public.objects (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     address TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
 -- 4. Таблица tasks (задачи)
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS public.tasks (
     assignee_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
     author_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
     status task_status DEFAULT 'new'::task_status NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
 -- 5. Таблица task_history (неизменяемая история статусов)
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS public.task_history (
     from_status task_status,
     to_status task_status NOT NULL,
     comment TEXT DEFAULT '' NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
 -- 6. Индексы для оптимизации выборок и проверок RLS

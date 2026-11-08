@@ -22,14 +22,14 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     email TEXT NOT NULL,
     display_name TEXT NOT NULL,
     role user_role NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.objects (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     address TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.tasks (
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS public.tasks (
     assignee_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
     author_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
     status task_status DEFAULT 'new'::task_status NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.task_history (
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS public.task_history (
     from_status task_status,
     to_status task_status NOT NULL,
     comment TEXT DEFAULT '' NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_tasks_assignee_id ON public.tasks(assignee_id);
@@ -183,7 +183,7 @@ BEGIN
         RAISE EXCEPTION 'Исполнителем может быть назначен только пользователь с ролью executor';
     END IF;
 
-    NEW.created_at := timezone('utc'::text, now());
+    NEW.created_at := now();
     RETURN NEW;
 END;
 $$;
@@ -203,7 +203,7 @@ SET search_path = public
 AS $$
 BEGIN
     INSERT INTO public.task_history (task_id, actor_id, from_status, to_status, comment, created_at)
-    VALUES (NEW.id, NEW.author_id, NULL, NEW.status, 'Задача создана', timezone('utc'::text, now()));
+    VALUES (NEW.id, NEW.author_id, NULL, NEW.status, 'Задача создана', now());
     RETURN NEW;
 END;
 $$;
@@ -363,7 +363,7 @@ BEGIN
     INSERT INTO public.task_history (
         task_id, actor_id, from_status, to_status, comment, created_at
     ) VALUES (
-        p_task_id, v_uid, p_expected_status, p_target_status, v_trimmed_comment, timezone('utc'::text, now())
+        p_task_id, v_uid, p_expected_status, p_target_status, v_trimmed_comment, now()
     );
 
     RETURN v_task;

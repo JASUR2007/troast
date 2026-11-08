@@ -4,12 +4,12 @@ import { Profile, Task, TaskHistoryItem } from '../types';
 import { INITIAL_PROFILES, INITIAL_TASKS, INITIAL_HISTORY } from '../lib/mockData';
 import { STORAGE_TASKS, STORAGE_HISTORY, getStored } from './storage';
 
-function dedupe(items: TaskHistoryItem[]): TaskHistoryItem[] {
+function dedupeById(items: TaskHistoryItem[]): TaskHistoryItem[] {
   const seen = new Set<string>();
   return items.filter((h) => {
-    const key = `${h.task_id}|${h.from_status}|${h.to_status}|${h.comment?.trim()}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
+    if (!h.id) return true;
+    if (seen.has(h.id)) return false;
+    seen.add(h.id);
     return true;
   });
 }
@@ -23,7 +23,7 @@ export const taskHistoryService = {
         .eq('task_id', taskId)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return dedupe(data as TaskHistoryItem[]);
+      return dedupeById(data as TaskHistoryItem[]);
     }
 
     const allT = getStored<Task[]>(STORAGE_TASKS, INITIAL_TASKS);
@@ -39,6 +39,6 @@ export const taskHistoryService = {
       .map((h) => ({ ...h, actor: INITIAL_PROFILES.find((p) => p.id === h.actor_id) }))
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-    return dedupe(matched);
+    return dedupeById(matched);
   },
 };

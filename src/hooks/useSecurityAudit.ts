@@ -13,18 +13,18 @@ export interface TestResult {
   message: string;
 }
 
-function isSecurityDenial(err: any): boolean {
+function isSecurityDenial(err: any, expectedPhrase?: string): boolean {
   if (!err) return false;
   const code = String(err.code || '');
   const msg = (err.message || '').toLowerCase();
-  return (
-    code === '42501' ||
-    code === 'P0001' ||
-    msg.includes('row-level security') ||
-    msg.includes('permission denied') ||
-    msg.includes('прямое изменение статуса') ||
-    msg.includes('доступ запрещен')
-  );
+  if (code === '42501' || msg.includes('row-level security') || msg.includes('permission denied')) {
+    return true;
+  }
+  if (code === 'P0001') {
+    if (expectedPhrase) return msg.includes(expectedPhrase.toLowerCase());
+    return msg.includes('прямое изменение статуса') || msg.includes('доступ запрещен') || msg.includes('transition_task');
+  }
+  return false;
 }
 
 export function useSecurityAudit() {
@@ -80,16 +80,28 @@ export function useSecurityAudit() {
         message: !leakObj ? 'Исполнитель видит только объекты со своими задачами.' : 'Ошибка: виден посторонний объект!',
       });
     } else {
+      let createdProbeId: string | null = null;
       try {
-        const { data: activeTasks, error: connErr } = await supabase!.from('tasks').select('id, status, title').limit(1);
-        if (connErr || !activeTasks || activeTasks.length === 0) {
-          throw new Error('База Supabase недоступна или нет активной авторизованной сессии');
-        }
-
-        const testTask = activeTasks[0];
+        const { data: probeTasks } = await supabase!.from('tasks').select('id, status, title').ilike('title', '%[audit]%').limit(1);
+        let testTask = probeTasks?.[0];
         const { data: { user } } = await supabase!.auth.getUser();
 
-        // Тест 1: Прямой INSERT в task_history
+        if (!testTask && user) {
+          const { data: objs } = await supabase!.from('objects').select('id').limit(1);
+          if (objs && objs.length > 0) {
+            const { data: created } = await supabase!.from('tasks').insert([{
+              title: '[AUDIT] Тестовый зонд безопасности', description: 'Автоматическая задача аудита RLS',
+              object_id: objs[0].id, assignee_id: user.id, author_id: user.id, status: 'new',
+            }]).select('id, status, title').single();
+            if (created) { testTask = created; createdProbeId = created.id; }
+          }
+        }
+        if (!testTask) {
+          const { data: fallback } = await supabase!.from('tasks').select('id, status, title').limit(1);
+          testTask = fallback?.[0];
+        }
+        if (!testTask) throw new Error('База Supabase недоступна или нет видимых задач');
+
         const attackComment = `AuditAttack_${Date.now()}`;
         const { error: histErr } = await supabase!.from('task_history').insert([{
           task_id: testTask.id, actor_id: user?.id || INITIAL_PROFILES[0].id, to_status: 'accepted', comment: attackComment,
@@ -98,23 +110,23 @@ export function useSecurityAudit() {
         const histBlocked = isSecurityDenial(histErr) && (!leakedHist || leakedHist.length === 0);
         list.push({
           id: 'live-1', title: '1. Supabase RLS: Запрет прямой записи в историю', passed: histBlocked, status: histBlocked ? 'passed' : 'failed',
-          message: histBlocked ? `БД отклонила несанкционированный INSERT (код: ${histErr?.code || 'RLS 42501'}). Данные не изменены.` : (histErr ? `Ошибка запроса (${histErr.message}), но не RLS отказ.` : 'КРИТИЧЕСКИЙ СБОЙ: запись добавлена в историю!'),
+          message: histBlocked ? `БД отклонила несанкционированный INSERT (код: ${histErr?.code || '42501'}). Данные не затронуты.` : 'КРИТИЧЕСКИЙ СБОЙ: запись добавлена в историю!',
         });
 
-        // Тест 2: Прямой UPDATE статуса в tasks
         const hackStatus = testTask.status === 'accepted' ? 'new' : 'accepted';
         const { error: updateErr } = await supabase!.from('tasks').update({ status: hackStatus }).eq('id', testTask.id);
         const { data: freshTask } = await supabase!.from('tasks').select('status').eq('id', testTask.id).single();
-        const updateBlocked = isSecurityDenial(updateErr) && freshTask?.status === testTask.status;
+        const updateBlocked = isSecurityDenial(updateErr, 'прямое изменение статуса') && freshTask?.status === testTask.status;
         list.push({
           id: 'live-2', title: '2. DB Trigger: Запрет прямого изменения статуса', passed: updateBlocked, status: updateBlocked ? 'passed' : 'failed',
-          message: updateBlocked ? `Триггер заблокировал прямой UPDATE: ${updateErr?.message || 'app.in_transition_rpc check'}. Статус сохранен.` : 'КРИТИЧЕСКИЙ СБОЙ: статус изменен в обход RPC!',
+          message: updateBlocked ? `Триггер отклонил прямой UPDATE (${updateErr?.message || 'trg_validate_task_update'}). Статус сохранён.` : 'КРИТИЧЕСКИЙ СБОЙ: статус изменен в обход transition_task!',
         });
       } catch (err: any) {
-        list.push({
-          id: 'live-err', title: 'Проверка подключения к Supabase', passed: false, status: 'failed',
-          message: err?.message || 'Не удалось выполнить аудит БД',
-        });
+        list.push({ id: 'live-err', title: 'Проверка подключения к Supabase', passed: false, status: 'failed', message: err?.message || 'Не удалось выполнить аудит БД' });
+      } finally {
+        if (createdProbeId) {
+          await supabase!.from('tasks').delete().eq('id', createdProbeId);
+        }
       }
     }
 

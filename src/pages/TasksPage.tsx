@@ -132,7 +132,10 @@ export const TasksPage: React.FC = () => {
       <CreateTaskModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={createTask}
+        onSubmit={async (data) => {
+          await createTask(data);
+          setIsCreateModalOpen(false);
+        }}
         objects={objects}
         profiles={profiles}
       />

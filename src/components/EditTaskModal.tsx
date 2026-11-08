@@ -37,6 +37,7 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!title.trim() || !assigneeId) {
       setError('Заполните название и назначьте исполнителя');
       return;
