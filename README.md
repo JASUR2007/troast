@@ -3,6 +3,9 @@
 Система управления строительными объектами и задачами для 2B Studio.
 Разделение ролей (**Постановщик** и **Исполнитель**), строгая матрица переходов статусов и гарантированная защита данных на уровне базы данных PostgreSQL (**Row Level Security (RLS)**, триггеры и RPC-функции).
 
+- 🌐 **Работающее приложение (Vercel):** [https://troast-crm.vercel.app/](https://troast-crm.vercel.app/)
+- 📦 **Репозиторий проекта (GitHub):** [https://github.com/JASUR2007/troast](https://github.com/JASUR2007/troast)
+
 ---
 
 ## 🛠 Стек технологий
