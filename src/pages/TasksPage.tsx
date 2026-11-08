@@ -19,6 +19,15 @@ export const TasksPage: React.FC = () => {
 
   const isManager = currentUser?.role === 'manager';
 
+  const statusCounts = {
+    all: tasks.length,
+    new: tasks.filter((t) => t.status === 'new').length,
+    in_progress: tasks.filter((t) => t.status === 'in_progress').length,
+    review: tasks.filter((t) => t.status === 'review').length,
+    rework: tasks.filter((t) => t.status === 'rework').length,
+    accepted: tasks.filter((t) => t.status === 'accepted').length,
+  };
+
   const filteredTasks = tasks.filter((t) => {
     const matchesSearch =
       t.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -90,7 +99,7 @@ export const TasksPage: React.FC = () => {
           </div>
         </div>
 
-        <TaskStatusFilters currentStatus={statusFilter} onChange={setStatusFilter} />
+        <TaskStatusFilters currentStatus={statusFilter} onChange={setStatusFilter} counts={statusCounts} />
       </div>
 
       {isLoading ? (

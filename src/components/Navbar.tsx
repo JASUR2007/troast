@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Building2, CheckSquare, ShieldCheck, LogOut, ChevronDown, HardHat } from 'lucide-react';
+import { api } from '../services/api';
+import { Building2, CheckSquare, ShieldCheck, LogOut, ChevronDown, HardHat, RotateCcw } from 'lucide-react';
 import { INITIAL_PROFILES } from '../lib/mockData';
 
 export const Navbar: React.FC<{ onOpenSecurityAudit: () => void }> = ({ onOpenSecurityAudit }) => {
@@ -109,7 +110,14 @@ export const Navbar: React.FC<{ onOpenSecurityAudit: () => void }> = ({ onOpenSe
                     ))}
                   </div>
                   <div className="border-t border-slate-100 pt-1 mt-1">
-                    <button onClick={() => signOut()} className="w-full text-left px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 flex items-center space-x-2">
+                    <button
+                      onClick={() => { api.resetDemoData(); window.location.reload(); }}
+                      className="w-full text-left px-4 py-1.5 text-xs text-slate-600 hover:bg-slate-50 flex items-center space-x-2"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Сбросить демо-данные</span>
+                    </button>
+                    <button onClick={() => signOut()} className="w-full text-left px-4 py-1.5 text-xs text-rose-600 hover:bg-rose-50 flex items-center space-x-2">
                       <LogOut className="w-3.5 h-3.5" />
                       <span>Выйти из аккаунта</span>
                     </button>

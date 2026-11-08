@@ -44,6 +44,14 @@ export const ObjectDetailPage: React.FC = () => {
   const isManager = currentUser?.role === 'manager';
   const acceptedCount = tasks.filter((t) => t.status === 'accepted').length;
   const progressPercent = tasks.length > 0 ? Math.round((acceptedCount / tasks.length) * 100) : 0;
+  const statusCounts = {
+    all: tasks.length,
+    new: tasks.filter((t) => t.status === 'new').length,
+    in_progress: tasks.filter((t) => t.status === 'in_progress').length,
+    review: tasks.filter((t) => t.status === 'review').length,
+    rework: tasks.filter((t) => t.status === 'rework').length,
+    accepted: acceptedCount,
+  };
 
   const filteredTasks = tasks.filter((t) => {
     const q = search.toLowerCase();
@@ -119,7 +127,7 @@ export const ObjectDetailPage: React.FC = () => {
                   <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
                   <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Поиск по задачам..." className="pl-8 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg w-full sm:w-48" />
                 </div>
-                <TaskStatusFilters currentStatus={statusFilter} onChange={setStatusFilter} />
+                <TaskStatusFilters currentStatus={statusFilter} onChange={setStatusFilter} counts={statusCounts} />
               </div>
             </div>
 
